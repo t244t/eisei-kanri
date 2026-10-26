@@ -263,7 +263,7 @@ async function loadRecord() {
   const r = await api('getRecord', { store: store(), date: $('date').value }, true);
   if (r) {
     REC = { items: r.items, temps: r.temps, note: r.note, closed: r.closed };
-    $('recStatus').textContent = `保存済み（記録者：${r.recorder}／${r.updated}）`;
+    $('recStatus').textContent = `保存済み（記録者：${r.recorder}　更新：${r.updated}）`;
     $('recStatus').className = 'status done';
     $('chiefStatus').textContent = r.confirm ? `確認済み：${r.confirm}（${r.confirmAt}）` : '未確認';
   } else {
