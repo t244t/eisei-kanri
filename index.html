@@ -27,6 +27,7 @@ button.primary{background:var(--g);color:#fff;border:0;width:100%;padding:14px;f
 button.mini{font-size:13px;padding:4px 10px;margin-left:auto}
 .status{margin:10px 0;padding:8px 10px;border-radius:8px;background:#fff;border:1px solid var(--line);font-size:14px}
 .status.done{background:#eef7ea;border-color:#b9d8ad}
+.status.draft{background:#fff8e1;border-color:#f0d58a}
 .item{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-bottom:6px}
 .item .lbl{flex:1;font-size:15px}
 .item small{display:block;color:#777;font-size:12px;margin-top:2px}
@@ -112,7 +113,7 @@ table.month{border-collapse:collapse;font-size:11px;min-width:100%}
       <textarea id="note" placeholder="×や温度異常のときは、理由と対応内容を記入してください"></textarea>
     </div>
   </div>
-  <button class="primary" id="saveRec">保存する</button>
+  <button class="primary" id="saveRec">確認して保存</button>
   <div class="chief">
     <h2>責任者確認</h2>
     <div id="chiefStatus" style="margin-bottom:8px;font-size:14px">未確認</div>
@@ -261,15 +262,23 @@ async function loadRecord() {
   renderRecordForm();
   $('recStatus').textContent = '読み込み中…'; $('recStatus').className = 'status';
   const r = await api('getRecord', { store: store(), date: $('date').value }, true);
-  if (r) {
+  if (r && !r.none) {
     REC = { items: r.items, temps: r.temps, note: r.note, closed: r.closed };
     $('recStatus').textContent = `保存済み（記録者：${r.recorder}　更新：${r.updated}）`;
     $('recStatus').className = 'status done';
     $('chiefStatus').textContent = r.confirm ? `確認済み：${r.confirm}（${r.confirmAt}）` : '未確認';
   } else {
+    // 初期値：○（該当なしは－）＋前回の温度（基準超えだった機器や前回なしは標準値）
     REC = { items: {}, temps: {}, note: '', closed: false };
-    INIT.items.forEach(it => { if (!applicable(it)) REC.items[it.key] = '－'; });
-    $('recStatus').textContent = 'この日はまだ記録されていません';
+    INIT.items.forEach(it => { REC.items[it.key] = applicable(it) ? '○' : '－'; });
+    const last = (r && r.lastTemps) || {};
+    units().forEach(u => {
+      const t = last[u.name];
+      const ok = t !== undefined && t !== '' && Number(t) <= u.limit;
+      REC.temps[u.name] = ok ? String(t) : (u.type === '冷凍庫' ? '-20' : '5');
+    });
+    $('recStatus').textContent = '未保存：○と前回の温度を入れてあります。実際に確認し、違うところだけ直して保存してください';
+    $('recStatus').className = 'status draft';
     $('chiefStatus').textContent = '未確認';
   }
   paintRecord();
