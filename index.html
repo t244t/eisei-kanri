@@ -186,7 +186,8 @@ async function boot() {
   $('ym').value = today().slice(0, 7);
   try { INIT = await api('init'); } catch (e) { $('recStatus').textContent = '接続できません：' + e.message; return; }
   $('store').innerHTML = INIT.stores.map(s => `<option>${esc(s.name)}</option>`).join('');
-  const ls = load('hy_store'); if (ls && INIT.stores.some(s => s.name === ls)) $('store').value = ls;
+  const qs = new URLSearchParams(location.search).get('store');   // 福祉ボットなどから ?store=店舗名 で開いたとき
+  const ls = qs && INIT.stores.some(s => s.name === qs) ? qs : load('hy_store'); if (ls && INIT.stores.some(s => s.name === ls)) $('store').value = ls;
   await onStoreChange();
 }
 async function onStoreChange() {
